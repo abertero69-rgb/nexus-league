@@ -135,11 +135,10 @@ async function handle(act,id) {
   }
   if (act==='report') {
     const m=matches.find(x=>x.id===Number(id)); if(!m)return;
-    // PENDIENTE: cambiar a primero a 5 tanto aquí como en la función SQL report_match y restricciones de la tabla.
-    const a=prompt(`Juegos ganados por ${nick(m.player1)} (0 a 3):`,m.score1??'3'); if(a===null)return;
-    const b=prompt(`Juegos ganados por ${nick(m.player2)} (0 a 3):`,m.score2??'0'); if(b===null)return;
+    const a=prompt(`Juegos ganados por ${nick(m.player1)} (0 a 5):`,m.score1??'5'); if(a===null)return;
+    const b=prompt(`Juegos ganados por ${nick(m.player2)} (0 a 5):`,m.score2??'0'); if(b===null)return;
     const s1=Number(a),s2=Number(b);
-    if(!Number.isInteger(s1)||!Number.isInteger(s2)||!((s1===3&&s2>=0&&s2<=2)||(s2===3&&s1>=0&&s1<=2))) {setNotice('Marcador inválido. Por ahora la base admite 3-0, 3-1 o 3-2. Falta migrar a primero a 5.');return;}
+    if(!Number.isInteger(s1)||!Number.isInteger(s2)||!((s1===5&&s2>=0&&s2<=4)||(s2===5&&s1>=0&&s1<=4))) {setNotice('Marcador inválido. Usá 5-0, 5-1, 5-2, 5-3 o 5-4 (en cualquier orden).');return;}
     const {error}=await action('report_match',{p_match_id:Number(id),p_score1:s1,p_score2:s2}); notice=error?error.message:'Resultado enviado. Falta confirmación del rival.'; await refresh(); return;
   }
   if (act==='confirm') { if(!confirm('¿Confirmás el resultado informado por tu rival?'))return; const {error}=await action('confirm_match',{p_match_id:Number(id)}); notice=error?error.message:'¡Resultado confirmado!'; await refresh(); }
