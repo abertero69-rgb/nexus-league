@@ -28,8 +28,9 @@ function standings() {
     if (!a || !b) continue;
     a.pj++; b.pj++; a.gf += m.score1; a.gc += m.score2;
     b.gf += m.score2; b.gc += m.score1;
-    if (m.score1 > m.score2) { a.pg++; a.pts += 3; b.pp++; }
-    else { b.pg++; b.pts += 3; a.pp++; }
+    a.pts += m.score1; b.pts += m.score2;
+    if (m.score1 > m.score2) { a.pg++; b.pp++; }
+    else { b.pg++; a.pp++; }
   }
   return rows.sort((a,b) => b.pts-a.pts || (b.gf-b.gc)-(a.gf-a.gc) || b.gf-a.gf || a.name.localeCompare(b.name));
 }
@@ -121,11 +122,11 @@ function render() {
   }
   const authenticated = !!user, registered = !!profile();
   if (authMode === 'signup' && (!registrationsOpen || !settingsLoaded)) authMode = 'signin';
-  app.innerHTML = `<header><div class="shell top"><div class="brand"><span>SALTY <em>LEAGUE</em></span></div><span class="subtitle">STREET FIGHTER 6 · PRIMERO A 5</span><div>${authenticated ? `<span class="small">${esc(displayName())}</span> <button data-act="logout" class="secondary">Salir</button>` : `<button data-act="loginTab">Ingresar / Registrarse</button>`}</div></div></header>
+  app.innerHTML = `<header><div class="shell top"><div class="brand"><span>SALTY <em>LEAGUE</em></span></div><span class="subtitle">STREET FIGHTER 6</span><div>${authenticated ? `<span class="small">${esc(displayName())}</span> <button data-act="logout" class="secondary">Salir</button>` : `<button data-act="loginTab">Ingresar / Registrarse</button>`}</div></div></header>
   <main class="shell"><section class="hero"><span class="tag">TEMPORADA 1 · LIGA INDIVIDUAL</span><h1>SALTY LEAGUE</h1><p>Liga del Salty Chat por los puntos, como se juega en la villa. El primero en llegar a 5 gana. Si no llegas a 5 pierde la familia.</p><div class="stats"><div><b>${profiles.length}</b><small>Jugadores</small></div><div><b>${matches.length}</b><small>Enfrentamientos</small></div><div><b>${matches.filter(x=>x.status==='confirmed').length}</b><small>Confirmados</small></div></div></section>
   ${notice ? `<div class="notice">${esc(notice)} <button data-act="clear" class="secondary">×</button></div>` : ''}
   <nav>${[['tabla','🏆 Clasificación'],['partidas','⚔️ Partidas'],['jugadores','👥 Jugadores'],['reglamento','📜 Reglamento'],['cuenta','👤 Mi cuenta']].map(([id,label])=>`<button class="${tab===id?'active':'secondary'}" data-tab="${id}">${label}</button>`).join('')}</nav>
-  ${tab==='tabla' ? `<section class="panel"><h2>Tabla de posiciones</h2><p class="muted">Victoria: 3 puntos · Derrota: 0 · Desempate: diferencia de juegos, juegos ganados.</p><div class="overflow"><table><thead><tr><th>#</th><th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>GF</th><th>GC</th><th>DG</th><th>PTS</th></tr></thead><tbody>${standings().map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.name)}</td><td>${r.pj}</td><td>${r.pg}</td><td>${r.pp}</td><td>${r.gf}</td><td>${r.gc}</td><td>${r.gf-r.gc}</td><td><strong>${r.pts}</strong></td></tr>`).join('')||'<tr><td colspan="9">Todavía no hay participantes.</td></tr>'}</tbody></table></div></section>` : ''}
+  ${tab==='tabla' ? `<section class="panel"><h2>Tabla de posiciones</h2><div class="overflow"><table><thead><tr><th>#</th><th>Jugador</th><th>Sets Jugados</th><th>Peleas Ganadas</th><th>Peleas Perdidas</th><th>Puntos</th></tr></thead><tbody>${standings().map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.name)}</td><td>${r.pj}</td><td>${r.gf}</td><td>${r.gc}</td><td><strong>${r.pts}</strong></td></tr>`).join('')||'<tr><td colspan="6">Todavía no hay participantes.</td></tr>'}</tbody></table></div></section>` : ''}
   ${tab==='jugadores' ? `<section class="panel"><h2>Jugadores inscriptos</h2><div class="tiles">${profiles.map(p=>`<div class="tile">🥊 ${esc(p.nickname)}</div>`).join('')||'Todavía no hay jugadores.'}</div></section>` : ''}
   ${tab==='partidas' ? `<section class="panel"><h2>Calendario y resultados</h2>${admin ? `<button data-act="generate">Generar calendario todos contra todos</button><p class="muted">Solo se puede generar una vez por temporada. Inscribí a todos antes de generarlo.</p>` : ''}${matches.map(m=>{
     const mine = authenticated && [m.player1,m.player2].includes(user.id);
