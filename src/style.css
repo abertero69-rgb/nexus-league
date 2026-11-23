@@ -86,3 +86,15 @@ table td:nth-child(n+3) {
     height: 70px;
   }
 }
+
+/* Encabezado transparente */
+header {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+header .top {
+  background: transparent !important;
+}
