@@ -354,7 +354,7 @@ function initializeSaltyEasterEgg() {
       button.remove();
       audio.pause();
       audio.currentTime = 0;
-    }, 5000);
+    }, 20000);
   }, { once: true });
   img.addEventListener('error', () => {
     console.warn('No se encontró /images/easter-egg.png');
