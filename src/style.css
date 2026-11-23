@@ -42,3 +42,18 @@ table td:nth-child(n+3) {
   justify-content: center;
   text-align: center;
 }
+
+/* Logo del encabezado */
+.brand-logo {
+  display: block;
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+
+@media (max-width: 600px) {
+  .brand-logo {
+    width: 48px;
+    height: 48px;
+  }
+}
