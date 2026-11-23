@@ -108,7 +108,6 @@ header .small {
   text-transform: capitalize;
   text-shadow: 0 2px 4px #000;
 }
-Al final del archivo, agregá:
 
 /* Ocultar indicadores del panel principal */
 .hero .stats {
