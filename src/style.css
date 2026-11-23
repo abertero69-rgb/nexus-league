@@ -28,3 +28,9 @@ body {
   min-height: 100vh;
   background: transparent !important;
 }
+
+/* Centrar los valores de la tabla de posiciones */
+table th:nth-child(n+3),
+table td:nth-child(n+3) {
+  text-align: center;
+}
