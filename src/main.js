@@ -328,8 +328,8 @@ function initializeSaltyEasterEgg() {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'salty-easter-egg';
-  button.setAttribute('aria-label', 'Reproducir sonido sorpresa');
-  button.title = '¡Tocá para escuchar!';
+ button.setAttribute('aria-label', 'Cerrar sorpresa');
+  button.title = '¡Tocá para cerrar!';
 
   const img = document.createElement('img');
   img.src = '/images/easter-egg.png';
@@ -338,10 +338,11 @@ function initializeSaltyEasterEgg() {
 
   const audio = new Audio('/images/easter-egg.mp3');
   audio.preload = 'auto';
-  button.addEventListener('click', () => {
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
-  });
+button.addEventListener('click', () => {
+  button.remove();
+  audio.pause();
+  audio.currentTime = 0;
+});
 
   // Solo mostrar cuando la imagen esté disponible.
   img.addEventListener('load', () => {
