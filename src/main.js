@@ -292,7 +292,7 @@ if (db) {
 // Easter egg de SALTY LEAGUE: 10% de probabilidad por carga de página.
 // No depende de render() para que no reaparezca al cambiar de sección.
 function initializeSaltyEasterEgg() {
-  if (Math.random() >= 0.1) return;
+  if (Math.random() >= 1) return;
 
   const style = document.createElement('style');
   style.textContent = `
