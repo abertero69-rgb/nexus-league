@@ -57,3 +57,32 @@ table td:nth-child(n+3) {
     height: 48px;
   }
 }
+
+/* Logo SALTY LEAGUE centrado en el encabezado */
+.top {
+  position: relative;
+  min-height: 110px;
+}
+
+.logo-central {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  display: block;
+}
+
+/* Ajuste para celulares */
+@media (max-width: 600px) {
+  .top {
+    min-height: 85px;
+  }
+
+  .logo-central {
+    width: 70px;
+    height: 70px;
+  }
+}
