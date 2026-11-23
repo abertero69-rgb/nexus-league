@@ -11,6 +11,7 @@ let user = null, profiles = [], matches = [], admin = false, tab = 'tabla', noti
 let authMode = 'signin', turnstileToken = '', turnstileWidget = null;
 let leagueRules = null, rulesEditing = false, rulesLoading = false;
 let mySubmissions = [];
+let editingMatchId = null;
 let registrationsOpen = true, settingsLoaded = false;
 const submissionFor = id => mySubmissions.find(x => Number(x.match_id) === Number(id));
 
@@ -133,7 +134,23 @@ function render() {
     const sub = submissionFor(m.id);
     const conflict = sub?.my_score1 != null && sub.rival_submitted && (sub.my_score1 !== sub.rival_score1 || sub.my_score2 !== sub.rival_score2);
     const label = m.status === 'confirmed' ? '✓ Confirmado y bloqueado' : m.status === 'pending' ? '⏳ Pendiente (sistema anterior)' : conflict ? '⚠️ Resultados diferentes: revisar' : sub?.my_score1 != null ? (sub.rival_submitted ? '⏳ Revisando resultados' : '⏳ Esperando al rival') : sub?.rival_submitted ? '⏳ Tu rival ya informó su resultado' : 'Por jugar';
-    return `<article class="match"><div><small>Fecha ${m.round_no} · ${label}</small><h3>${esc(nick(m.player1))} <span class="versus">${m.status === 'confirmed' || m.status === 'pending' ? `${m.score1} — ${m.score2}` : 'VS'}</span> ${esc(nick(m.player2))}</h3>${mine && m.status === 'scheduled' ? `<p class="muted">${sub?.my_score1 != null ? `Tu resultado: ${sub.my_score1}-${sub.my_score2}. ` : ''}${conflict ? `⚠️ El rival informó ${sub.rival_score1}-${sub.rival_score2}. No coincide: revisen y corrijan el marcador.` : sub?.rival_submitted ? 'Tu rival ya cargó su resultado.' : ''}</p>` : ''}</div><div>${mine && m.status === 'scheduled' ? `<button data-act="report" data-id="${m.id}">${sub?.my_score1 != null ? 'Corregir mi resultado' : 'Cargar mi resultado'}</button>` : ''}</div></article>`;
+    return `<article class="match"><div><small>Fecha ${m.round_no} · ${label}</small><h3>${esc(nick(m.player1))} <span class="versus">${m.status === 'confirmed' || m.status === 'pending' ? `${m.score1} — ${m.score2}` : 'VS'}</span> ${esc(nick(m.player2))}</h3>${mine && m.status === 'scheduled' ? `<p class="muted">${sub?.my_score1 != null ? `Tu resultado: ${sub.my_score1}-${sub.my_score2}. ` : ''}${conflict ? `⚠️ El rival informó ${sub.rival_score1}-${sub.rival_score2}. No coincide: revisen y corrijan el marcador.` : sub?.rival_submitted ? 'Tu rival ya cargó su resultado.' : ''}</p>` : ''}</div><div>${mine && m.status === 'scheduled' ? `<button data-act="report" data-id="${m.id}">${sub?.my_score1 != null ? 'Corregir mi resultado' : 'Cargar mi resultado'}</button>` : ''}${mine && m.status === 'scheduled' && editingMatchId === m.id ? `<form class="result-form" data-match-id="${m.id}" style="margin-top:16px;padding:16px;border:1px solid #555;border-radius:10px;display:grid;gap:12px;max-width:420px">
+      <strong>Informar mi resultado</strong>
+      <label>¿Ganaste o perdiste el set?
+        <select name="outcome" required style="display:block;width:100%;padding:10px;margin-top:5px">
+          <option value="win" ${sub?.my_score1 != null && (user.id === m.player1 ? sub.my_score1 : sub.my_score2) < 5 ? '' : 'selected'}>🏆 Gané el set</option>
+          <option value="loss" ${sub?.my_score1 != null && (user.id === m.player1 ? sub.my_score1 : sub.my_score2) < 5 ? 'selected' : ''}>❌ Perdí el set</option>
+        </select>
+      </label>
+      <label>¿Cuántas peleas ganaste? (0 a 5)
+        <input name="wins" type="number" min="0" max="5" step="1" required value="${sub?.my_score1 != null ? (user.id === m.player1 ? sub.my_score1 : sub.my_score2) : 5}" style="display:block;width:100%;box-sizing:border-box" />
+      </label>
+      <label>¿Cuántas peleas perdiste? (0 a 5)
+        <input name="losses" type="number" min="0" max="5" step="1" required value="${sub?.my_score1 != null ? (user.id === m.player1 ? sub.my_score2 : sub.my_score1) : 0}" style="display:block;width:100%;box-sizing:border-box" />
+      </label>
+      <div class="actions"><button type="submit">Guardar resultado</button><button type="button" class="secondary" data-act="cancelReport">Cancelar</button></div>
+      <p class="muted">El ganador debe tener 5 peleas ganadas y el perdedor 5 peleas ganadas por su rival. El resultado quedará pendiente hasta que ambos jugadores coincidan.</p>
+    </form>` : ''}</div></article>`;
   }).join('')||'<p>El administrador todavía no generó el calendario.</p>'}</section>` : ''}
   ${tab==='reglamento' ? `<section class="panel"><h2>📜 Reglamento oficial</h2>
     ${rulesLoading ? '<p class="muted">Cargando reglamento...</p>' :
@@ -156,6 +173,7 @@ function render() {
   </main><footer class="shell">SALTY LEAGUE · Proyecto independiente para la comunidad de Street Fighter 6.</footer>`;
   app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; notice = ''; render(); });
   app.querySelectorAll('[data-act]').forEach(b => b.onclick = () => handle(b.dataset.act,b.dataset.id));
+  app.querySelectorAll('.result-form').forEach(form => form.onsubmit = submitResult);
   const rulesForm = app.querySelector('#rules-form');
   if (rulesForm) rulesForm.onsubmit = saveRules;
   const auth = app.querySelector('#auth');
@@ -196,6 +214,42 @@ async function submitAuth(e) {
   }
 }
 
+async function submitResult(e) {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const matchId = Number(form.dataset.matchId);
+  const m = matches.find(x => x.id === matchId);
+  if (!m || !user || ![m.player1,m.player2].includes(user.id) || m.status !== 'scheduled') {
+    return setNotice('No podés informar el resultado de esta partida.');
+  }
+  const outcome = form.elements.outcome.value;
+  const wins = Number(form.elements.wins.value);
+  const losses = Number(form.elements.losses.value);
+  if (!Number.isInteger(wins) || !Number.isInteger(losses) ||
+      !['win','loss'].includes(outcome) ||
+      !(outcome === 'win' ? wins === 5 && losses >= 0 && losses <= 4 :
+        losses === 5 && wins >= 0 && wins <= 4)) {
+    return setNotice('El resultado no coincide con la opción Gané/Perdí. El ganador debe tener 5 peleas y el perdedor entre 0 y 4.');
+  }
+  // La función SQL recibe siempre los marcadores en orden player1, player2.
+  const s1 = user.id === m.player1 ? wins : losses;
+  const s2 = user.id === m.player1 ? losses : wins;
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  const {data,error} = await action('submit_match_score', {
+    p_match_id: matchId, p_score1: s1, p_score2: s2
+  });
+  if (error) {
+    button.disabled = false;
+    return setNotice('No se pudo guardar el resultado: ' + error.message);
+  }
+  editingMatchId = null;
+  notice = data === 'confirmed' ? '¡Ambos resultados coinciden! Partida confirmada y bloqueada.' :
+    data === 'disputed' ? '⚠️ Los resultados no coinciden. Revisá tu marcador y corregilo si es necesario.' :
+    'Resultado guardado. Esperando que tu rival cargue el suyo.';
+  await refresh();
+}
+
 async function handle(act,id) {
   if (act==='toggleRegistrations') {
     if (!admin || !user || !settingsLoaded) return setNotice('No tenés permiso para modificar las inscripciones.');
@@ -218,17 +272,15 @@ async function handle(act,id) {
     const {data,error}=await action('create_round_robin'); notice=error?error.message:`Calendario generado: ${data} partidas.`; await refresh(); return;
   }
   if (act==='report') {
-    const m = matches.find(x => x.id === Number(id)); if (!m) return;
-    const sub = submissionFor(m.id);
-    const a = prompt(`Resultado de ${nick(m.player1)} (0 a 5):`, String(sub?.my_score1 ?? 5)); if (a === null) return;
-    const b = prompt(`Resultado de ${nick(m.player2)} (0 a 5):`, String(sub?.my_score2 ?? 0)); if (b === null) return;
-    if (!/^\d+$/.test(a.trim()) || !/^\d+$/.test(b.trim())) return setNotice('Ingresá números enteros.');
-    const s1 = Number(a), s2 = Number(b);
-    if (!((s1 === 5 && s2 >= 0 && s2 <= 4) || (s2 === 5 && s1 >= 0 && s1 <= 4))) return setNotice('Marcador inválido: de 5-0 a 5-4, en cualquier orden.');
-    const {data,error} = await action('submit_match_score',{p_match_id:m.id,p_score1:s1,p_score2:s2});
-    notice = error ? error.message : data === 'confirmed' ? '¡Ambos resultados coinciden! Partida confirmada y bloqueada.' : data === 'disputed' ? '⚠️ Los resultados no coinciden. Revisá tu marcador y corregilo si es necesario.' : 'Resultado guardado. Esperando que tu rival cargue el suyo.';
-    await refresh(); return;
+    const m = matches.find(x => x.id === Number(id));
+    if (!m || m.status !== 'scheduled' || !user || ![m.player1,m.player2].includes(user.id)) return;
+    editingMatchId = m.id;
+    notice = '';
+    render();
+    return;
   }
+  if (act==='cancelReport') { editingMatchId = null; render(); return; }
+
 }
 
 if (db) {
