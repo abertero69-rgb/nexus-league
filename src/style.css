@@ -98,3 +98,13 @@ header {
 header .top {
   background: transparent !important;
 }
+
+/* Nombre de usuario en el encabezado */
+header .small {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-right: 10px;
+  text-transform: capitalize;
+  text-shadow: 0 2px 4px #000;
+}
