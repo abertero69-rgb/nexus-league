@@ -339,9 +339,9 @@ function initializeSaltyEasterEgg() {
   const audio = new Audio('/images/easter-egg.mp3');
   audio.preload = 'auto';
 button.addEventListener('click', () => {
-  button.remove();
-  audio.pause();
   audio.currentTime = 0;
+  audio.play().catch(console.error);
+  button.remove();
 });
 
   // Solo mostrar cuando la imagen esté disponible.
@@ -351,11 +351,9 @@ button.addEventListener('click', () => {
       // Algunos navegadores exigen una interacción para reproducir audio.
       // En ese caso, la imagen actúa como botón para escucharlo.
     });
-    window.setTimeout(() => {
-      button.remove();
-      audio.pause();
-      audio.currentTime = 0;
-    }, 20000);
+window.setTimeout(() => {
+  button.remove();
+}, 20000);
   }, { once: true });
   img.addEventListener('error', () => {
     console.warn('No se encontró /images/easter-egg.png');
