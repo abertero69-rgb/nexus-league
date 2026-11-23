@@ -288,3 +288,77 @@ if (db) {
   db.auth.onAuthStateChange((_event,session) => { user=session?.user||null; refresh(); });
   db.auth.getSession().then(({data}) => { user=data.session?.user||null; refresh(); });
 }
+
+// Easter egg de SALTY LEAGUE: 10% de probabilidad por carga de página.
+// No depende de render() para que no reaparezca al cambiar de sección.
+function initializeSaltyEasterEgg() {
+  if (Math.random() >= 0.1) return;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    .salty-easter-egg {
+      position: fixed;
+      right: 16px;
+      bottom: 12px;
+      z-index: 9999;
+      width: min(230px, 40vw);
+      border: 0;
+      padding: 0;
+      margin: 0;
+      background: transparent;
+      cursor: pointer;
+      filter: drop-shadow(0 8px 12px rgba(0,0,0,.45));
+      animation: salty-egg-enter .35s ease-out both;
+    }
+    .salty-easter-egg img { display: block; width: 100%; height: auto; }
+    .salty-easter-egg:focus-visible { outline: 3px solid #b795ff; border-radius: 12px; }
+    @keyframes salty-egg-enter {
+      from { opacity: 0; transform: translateY(35px) scale(.85); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @media (max-width: 600px) {
+      .salty-easter-egg { right: 8px; bottom: 8px; width: min(165px, 43vw); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .salty-easter-egg { animation: none; }
+    }
+  `;
+  document.head.appendChild(style);
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'salty-easter-egg';
+  button.setAttribute('aria-label', 'Reproducir sonido sorpresa');
+  button.title = '¡Tocá para escuchar!';
+
+  const img = document.createElement('img');
+  img.src = '/images/easter-egg.png';
+  img.alt = 'Sorpresa de SALTY LEAGUE';
+  button.appendChild(img);
+
+  const audio = new Audio('/images/easter-egg.mp3');
+  audio.preload = 'auto';
+  button.addEventListener('click', () => {
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  });
+
+  // Solo mostrar cuando la imagen esté disponible.
+  img.addEventListener('load', () => {
+    document.body.appendChild(button);
+    audio.play().catch(() => {
+      // Algunos navegadores exigen una interacción para reproducir audio.
+      // En ese caso, la imagen actúa como botón para escucharlo.
+    });
+    window.setTimeout(() => {
+      button.remove();
+      audio.pause();
+      audio.currentTime = 0;
+    }, 5000);
+  }, { once: true });
+  img.addEventListener('error', () => {
+    console.warn('No se encontró /images/easter-egg.png');
+  }, { once: true });
+}
+
+initializeSaltyEasterEgg();
