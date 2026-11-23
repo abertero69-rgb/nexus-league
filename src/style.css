@@ -34,3 +34,11 @@ table th:nth-child(n+3),
 table td:nth-child(n+3) {
   text-align: center;
 }
+
+/* Centrar nombres de jugadores dentro de los rectángulos */
+.tiles .tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
