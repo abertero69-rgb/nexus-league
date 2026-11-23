@@ -10,6 +10,8 @@ const app = document.querySelector('#app');
 let user = null, profiles = [], matches = [], admin = false, tab = 'tabla', notice = '';
 let authMode = 'signin', turnstileToken = '', turnstileWidget = null;
 let leagueRules = null, rulesEditing = false, rulesLoading = false;
+let mySubmissions = [];
+const submissionFor = id => mySubmissions.find(x => Number(x.match_id) === Number(id));
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nick = id => profiles.find(p => p.id === id)?.nickname || 'Jugador';
@@ -34,13 +36,16 @@ function standings() {
 function setNotice(message) { notice = message; render(); }
 async function refresh() {
   if (!db) return;
-  const [p,m,a] = await Promise.all([
+  const [p,m,a,r] = await Promise.all([
     db.from('profiles').select('*').order('created_at'),
     db.from('matches').select('*').order('round_no').order('id'),
     user ? db.from('admins').select('id').eq('id',user.id) : Promise.resolve({data:[]}),
+    user ? db.rpc('my_match_submissions') : Promise.resolve({data:[]}),
   ]);
   if (p.error || m.error) notice = p.error?.message || m.error?.message;
   profiles = p.data || []; matches = m.data || []; admin = !!a.data?.length;
+  mySubmissions = r.data || [];
+  if (r.error) notice = 'Error al cargar los resultados individuales: ' + r.error.message;
   if (a.error) notice = 'Error al verificar administrador: ' + a.error.message;
   render();
 }
@@ -116,7 +121,13 @@ function render() {
   <nav>${[['tabla','🏆 Clasificación'],['partidas','⚔️ Partidas'],['jugadores','👥 Jugadores'],['reglamento','📜 Reglamento'],['cuenta','👤 Mi cuenta']].map(([id,label])=>`<button class="${tab===id?'active':'secondary'}" data-tab="${id}">${label}</button>`).join('')}</nav>
   ${tab==='tabla' ? `<section class="panel"><h2>Tabla de posiciones</h2><p class="muted">Victoria: 3 puntos · Derrota: 0 · Desempate: diferencia de juegos, juegos ganados.</p><div class="overflow"><table><thead><tr><th>#</th><th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>GF</th><th>GC</th><th>DG</th><th>PTS</th></tr></thead><tbody>${standings().map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.name)}</td><td>${r.pj}</td><td>${r.pg}</td><td>${r.pp}</td><td>${r.gf}</td><td>${r.gc}</td><td>${r.gf-r.gc}</td><td><strong>${r.pts}</strong></td></tr>`).join('')||'<tr><td colspan="9">Todavía no hay participantes.</td></tr>'}</tbody></table></div></section>` : ''}
   ${tab==='jugadores' ? `<section class="panel"><h2>Jugadores inscriptos</h2><div class="tiles">${profiles.map(p=>`<div class="tile">🥊 ${esc(p.nickname)}</div>`).join('')||'Todavía no hay jugadores.'}</div></section>` : ''}
-  ${tab==='partidas' ? `<section class="panel"><h2>Calendario y resultados</h2>${admin ? `<button data-act="generate">Generar calendario todos contra todos</button><p class="muted">Solo se puede generar una vez por temporada. Inscribí a todos antes de generarlo.</p>` : ''}${matches.map(m=>`<article class="match"><div><small>Fecha ${m.round_no} · ${m.status==='confirmed'?'✓ Confirmado':m.status==='pending'?'⏳ Pendiente de confirmación':'Por jugar'}</small><h3>${esc(nick(m.player1))} <span class="versus">${m.score1===null?'VS':`${m.score1} — ${m.score2}`}</span> ${esc(nick(m.player2))}</h3></div><div>${authenticated&&[m.player1,m.player2].includes(user.id)&&m.status!=='confirmed'?`<button data-act="report" data-id="${m.id}">Cargar resultado</button> `:''}${authenticated&&m.status==='pending'&&m.reported_by!==user.id&&[m.player1,m.player2].includes(user.id)?`<button data-act="confirm" data-id="${m.id}">Confirmar</button>`:''}</div></article>`).join('')||'<p>El administrador todavía no generó el calendario.</p>'}</section>` : ''}
+  ${tab==='partidas' ? `<section class="panel"><h2>Calendario y resultados</h2>${admin ? `<button data-act="generate">Generar calendario todos contra todos</button><p class="muted">Solo se puede generar una vez por temporada. Inscribí a todos antes de generarlo.</p>` : ''}${matches.map(m=>{
+    const mine = authenticated && [m.player1,m.player2].includes(user.id);
+    const sub = submissionFor(m.id);
+    const conflict = sub?.my_score1 != null && sub.rival_submitted && (sub.my_score1 !== sub.rival_score1 || sub.my_score2 !== sub.rival_score2);
+    const label = m.status === 'confirmed' ? '✓ Confirmado y bloqueado' : m.status === 'pending' ? '⏳ Pendiente (sistema anterior)' : conflict ? '⚠️ Resultados diferentes: revisar' : sub?.my_score1 != null ? (sub.rival_submitted ? '⏳ Revisando resultados' : '⏳ Esperando al rival') : sub?.rival_submitted ? '⏳ Tu rival ya informó su resultado' : 'Por jugar';
+    return `<article class="match"><div><small>Fecha ${m.round_no} · ${label}</small><h3>${esc(nick(m.player1))} <span class="versus">${m.status === 'confirmed' || m.status === 'pending' ? `${m.score1} — ${m.score2}` : 'VS'}</span> ${esc(nick(m.player2))}</h3>${mine && m.status === 'scheduled' ? `<p class="muted">${sub?.my_score1 != null ? `Tu resultado: ${sub.my_score1}-${sub.my_score2}. ` : ''}${conflict ? `⚠️ El rival informó ${sub.rival_score1}-${sub.rival_score2}. No coincide: revisen y corrijan el marcador.` : sub?.rival_submitted ? 'Tu rival ya cargó su resultado.' : ''}</p>` : ''}</div><div>${mine && m.status === 'scheduled' ? `<button data-act="report" data-id="${m.id}">${sub?.my_score1 != null ? 'Corregir mi resultado' : 'Cargar mi resultado'}</button>` : ''}</div></article>`;
+  }).join('')||'<p>El administrador todavía no generó el calendario.</p>'}</section>` : ''}
   ${tab==='reglamento' ? `<section class="panel"><h2>📜 Reglamento oficial</h2>
     ${rulesLoading ? '<p class="muted">Cargando reglamento...</p>' :
       rulesEditing && admin ? `<form id="rules-form">
@@ -184,14 +195,17 @@ async function handle(act,id) {
     const {data,error}=await action('create_round_robin'); notice=error?error.message:`Calendario generado: ${data} partidas.`; await refresh(); return;
   }
   if (act==='report') {
-    const m=matches.find(x=>x.id===Number(id)); if(!m)return;
-    const a=prompt(`Juegos ganados por ${nick(m.player1)} (0 a 5):`,m.score1??'5'); if(a===null)return;
-    const b=prompt(`Juegos ganados por ${nick(m.player2)} (0 a 5):`,m.score2??'0'); if(b===null)return;
-    const s1=Number(a),s2=Number(b);
-    if(!Number.isInteger(s1)||!Number.isInteger(s2)||!((s1===5&&s2>=0&&s2<=4)||(s2===5&&s1>=0&&s1<=4))) {setNotice('Marcador inválido. Usá 5-0, 5-1, 5-2, 5-3 o 5-4 (en cualquier orden).');return;}
-    const {error}=await action('report_match',{p_match_id:Number(id),p_score1:s1,p_score2:s2}); notice=error?error.message:'Resultado enviado. Falta confirmación del rival.'; await refresh(); return;
+    const m = matches.find(x => x.id === Number(id)); if (!m) return;
+    const sub = submissionFor(m.id);
+    const a = prompt(`Resultado de ${nick(m.player1)} (0 a 5):`, String(sub?.my_score1 ?? 5)); if (a === null) return;
+    const b = prompt(`Resultado de ${nick(m.player2)} (0 a 5):`, String(sub?.my_score2 ?? 0)); if (b === null) return;
+    if (!/^\d+$/.test(a.trim()) || !/^\d+$/.test(b.trim())) return setNotice('Ingresá números enteros.');
+    const s1 = Number(a), s2 = Number(b);
+    if (!((s1 === 5 && s2 >= 0 && s2 <= 4) || (s2 === 5 && s1 >= 0 && s1 <= 4))) return setNotice('Marcador inválido: de 5-0 a 5-4, en cualquier orden.');
+    const {data,error} = await action('submit_match_score',{p_match_id:m.id,p_score1:s1,p_score2:s2});
+    notice = error ? error.message : data === 'confirmed' ? '¡Ambos resultados coinciden! Partida confirmada y bloqueada.' : data === 'disputed' ? '⚠️ Los resultados no coinciden. Revisá tu marcador y corregilo si es necesario.' : 'Resultado guardado. Esperando que tu rival cargue el suyo.';
+    await refresh(); return;
   }
-  if (act==='confirm') { if(!confirm('¿Confirmás el resultado informado por tu rival?'))return; const {error}=await action('confirm_match',{p_match_id:Number(id)}); notice=error?error.message:'¡Resultado confirmado!'; await refresh(); }
 }
 
 if (db) {
