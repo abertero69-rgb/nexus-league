@@ -368,3 +368,58 @@ window.setTimeout(() => {
 }
 
 initializeSaltyEasterEgg();
+
+// Segundo Easter Egg - Pispu
+function initializePispuEasterEgg() {
+  if (Math.random() >= 0.1) return;
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'salty-easter-egg';
+  button.style.position = 'fixed';
+  button.style.left = '15px';
+  button.style.right = 'auto';
+  button.style.bottom = '15px';
+  button.style.zIndex = '9999';
+  button.style.background = 'transparent';
+  button.style.border = 'none';
+  button.style.padding = '0';
+  button.style.cursor = 'pointer';
+  button.title = '¡Tocá para escuchar!';
+  button.setAttribute('aria-label', 'Reproducir sorpresa Pispu');
+
+  const img = document.createElement('img');
+  img.alt = 'Sorpresa Pispu';
+  img.style.width = '200px';
+  img.style.maxWidth = '35vw';
+  img.style.height = 'auto';
+  button.appendChild(img);
+
+  const audio = new Audio('/images/pispu.mp3');
+  audio.preload = 'auto';
+
+  button.addEventListener('click', () => {
+    if (audio.paused) {
+      audio.play().catch(console.error);
+    }
+  });
+
+  audio.addEventListener('ended', () => {
+    button.remove();
+  });
+
+  img.addEventListener('load', () => {
+    document.body.appendChild(button);
+    audio.play().catch(() => {});
+
+    window.setTimeout(() => {
+      if (audio.paused) {
+        button.remove();
+      }
+    }, 20000);
+  }, { once: true });
+
+  img.src = '/images/pispu.png';
+}
+
+initializePispuEasterEgg();
