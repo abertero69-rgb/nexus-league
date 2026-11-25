@@ -122,3 +122,8 @@ header .small {
   backdrop-filter: none !important;
   text-shadow: 0 2px 6px #000;
 }
+
+/* Centrar textos del panel principal */
+.hero {
+  text-align: center;
+}
