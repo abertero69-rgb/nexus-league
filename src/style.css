@@ -127,3 +127,12 @@ header .small {
 .hero {
   text-align: center;
 }
+Agregá al final del archivo:
+
+/* Centrar menú de navegación */
+nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
