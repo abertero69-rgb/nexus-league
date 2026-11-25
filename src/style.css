@@ -113,3 +113,12 @@ header .small {
 .hero .stats {
   display: none !important;
 }
+
+/* Recuadro principal transparente */
+.hero {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  text-shadow: 0 2px 6px #000;
+}
