@@ -423,3 +423,47 @@ function initializePispuEasterEgg() {
 }
 
 initializePispuEasterEgg();
+function initializeMotoEasterEgg() {
+  if (Math.random() >= 0.10) return;
+
+  const button = document.createElement('button');
+
+  button.id = 'moto-easter-egg';
+  button.setAttribute('aria-label', 'Jugar Moto Exitada');
+
+  Object.assign(button.style, {
+    position: 'fixed',
+    bottom: '0px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: 'clamp(90px, 18vw, 150px)',
+    padding: '0',
+    border: 'none',
+    background: 'transparent',
+    cursor: 'pointer',
+    zIndex: '9999',
+    touchAction: 'manipulation'
+  });
+
+  const img = document.createElement('img');
+
+  img.src = '/images/moto-cara.png';
+  img.alt = 'Moto Exitada';
+  img.style.width = '100%';
+  img.style.display = 'block';
+
+  button.appendChild(img);
+
+  button.addEventListener('click', () => {
+    button.remove();
+    window.location.href = '/moto-exitada.html';
+  });
+
+  document.body.appendChild(button);
+
+  window.setTimeout(() => {
+    button.remove();
+  }, 20000);
+}
+
+initializeMotoEasterEgg();
