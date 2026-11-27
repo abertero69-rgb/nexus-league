@@ -390,8 +390,7 @@ function initializePispuEasterEgg() {
 
   const img = document.createElement('img');
   img.alt = 'Sorpresa Pispu';
-  img.style.width = '200px';
-  img.style.maxWidth = '35vw';
+img.style.width = '100%';
   img.style.height = 'auto';
   button.appendChild(img);
 
@@ -436,7 +435,9 @@ function initializeMotoEasterEgg() {
     bottom: '0px',
     left: '50%',
     transform: 'translateX(-50%)',
-    width: 'clamp(90px, 18vw, 150px)',
+  width: window.matchMedia('(max-width: 600px)').matches
+  ? 'min(165px, 43vw)'
+  : 'min(230px, 40vw)',
     padding: '0',
     border: 'none',
     background: 'transparent',
