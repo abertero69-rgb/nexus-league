@@ -454,10 +454,20 @@ function initializeMotoEasterEgg() {
 
   button.appendChild(img);
 
-  button.addEventListener('click', () => {
-    button.remove();
-    window.location.href = '/moto-exitada.html';
-  });
+  button.addEventListener('click', async () => {
+  button.remove();
+
+  const { data: { session } } = await db.auth.getSession();
+
+  if (!session) {
+    alert('Debes iniciar sesión para jugar.');
+    return;
+  }
+
+  sessionStorage.setItem('moto_game_access', '1');
+
+  window.location.href = '/moto-exitada.html';
+});
 
   document.body.appendChild(button);
 
