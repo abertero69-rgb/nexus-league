@@ -390,7 +390,9 @@ function initializePispuEasterEgg() {
 
   const img = document.createElement('img');
   img.alt = 'Sorpresa Pispu';
-img.style.width = '100%';
+img.style.width = window.matchMedia('(max-width: 600px)').matches
+  ? 'min(165px, 43vw)'
+  : 'min(230px, 40vw)';
   img.style.height = 'auto';
   button.appendChild(img);
 
