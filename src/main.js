@@ -465,7 +465,10 @@ function initializeMotoEasterEgg() {
   }
 
   sessionStorage.setItem('moto_game_access', '1');
-
+sessionStorage.setItem('moto_game_config', JSON.stringify({
+  url: import.meta.env.VITE_SUPABASE_URL,
+  key: import.meta.env.VITE_SUPABASE_ANON_KEY
+}));
   window.location.href = '/moto-exitada.html';
 });
 
